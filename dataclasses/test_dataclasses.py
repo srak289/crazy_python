@@ -7,7 +7,12 @@ import pytest
 # ----------------------------------------
 
 # All classes should be databclasses.
+import string
+import random
+import urllib
 
+
+@dataclasses.dataclass
 class LinuxMachine:
 
     '''
@@ -17,14 +22,48 @@ class LinuxMachine:
     LinuxMachines are identical if their hostnames are the same. LinuxMachines can be included in sets and dicts.
     Your security audit will fail if the root password cannot be changed.
     '''
+    hostname: str
+    root_password: str = dataclasses.field(repr=False)
 
-    pass # write me
+    def __init__(self, hostname: str, root_password: str=None) -> 'LinuxMachine':
+        object.__setattr__(self, "hostname", hostname)
+        self.root_password = root_password
+        if self.root_password == None:
+            self.root_password = "".join([random.choice(string.printable) for _ in range(16)])
 
+    def __setattr__(self, k, v):
+        if k == "hostname":
+            raise AttributeError(f"LinuxMachine.hostname is immutable")
+        self.__dict__[k] = v
+
+    def __eq__(self, rhs):
+        return self.hostname == rhs.hostname
+
+    def __hash__(self):
+        return hash(self.hostname)
+
+
+@dataclasses.dataclass
 class WebServer:
     '''
     WebServers have Application URIs (in the uri attribute).  The uri is a  urllib.parse.ParseResult, or at least is that type by the time a  WebServer is fully initialized. For convenience, WebServers also take string forms of URIs on initialization.  WebServers raise TypeErrors if the uri doesn't point to the hostname.
     '''
-    pass
+    hostname: str
+    uri: url_parse.ParseResult
+
+    def __post_init__(self):
+        if not isinstance(self.uri, url_parse.ParseResult):
+            self.uri = urllib.parse.urlparse(self.uri)
+        if self.hostname != self.uri.netloc:
+            raise ValueError(f"{self.uri.netloc} should be equal to {self.hostname}")
+
+    @property
+    def __key(self):
+        return (self.hostname, str(self.uri))
+
+    def __hash__(self):
+        return hash(self.__key)
+
 
 #exec(Path('../solutions/test_dataclass.py').read_text())    
 # Validation tests
@@ -76,4 +115,3 @@ def test_security_audit():
     l2 = LinuxMachine(hostname='foo.com')
     l3 = LinuxMachine(hostname='foo.com')
     assert l2.root_password != l3.root_password, 'Same initial root password is a finding'
-                      
