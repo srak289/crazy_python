@@ -21,7 +21,18 @@ class ismethod:
         meth() # not a method
 
     '''
-    pass
+    def __init__(self, func):
+        self._func = func
+        self._obj = None
+        self._cls = None
+
+    def __get__(self, obj, cls):
+        self._obj = obj
+        self._cls = cls
+        return self
+
+    def __call__(self, *args, **kwargs):
+        return self._func(self._obj if self._obj else self._cls, *args, **kwargs)
 
 # Solution
 #exec(Path('../solutions/test_is_a_method.py').read_text())
@@ -53,4 +64,3 @@ def test_as_method():
     assert OurClass.meth_1(20,30) == [OurClass, OurClass]
     obj = OurClass()
     assert obj.meth_1(20) == [obj]
-    
